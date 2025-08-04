@@ -205,27 +205,35 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
         </div>
         
         <div className="text-center mb-3">
-          <button
-            className="text-white px-6 py-3 rounded-lg font-medium text-lg shadow-lg"
-            style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}
-            onClick={() => {
-              // Simulate scanning a book for demo
-              const demoISBNs = [
-                '9780465050659', // The Design of Everyday Things
-                '9780134685991', // Effective Java
-                '9781617294945', // Spring in Action
-                '9780596517748', // JavaScript: The Good Parts
-                '9780321965515'  // Don't Make Me Think
-              ];
-              const randomISBN = demoISBNs[Math.floor(Math.random() * demoISBNs.length)];
-              handleBarcodeDetected(randomISBN);
-            }}
-            disabled={isLoading}
-            data-testid="demo-scan-button"
-          >
-            {isLoading ? "Scanning..." : "Demo Scan"}
-          </button>
-          <p className="text-xs text-gray-500 mt-2">Tap to simulate scanning a book</p>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Real barcode scanning requires additional setup</p>
+            <div className="flex space-x-2 justify-center">
+              <button
+                className="text-white px-4 py-2 rounded-lg font-medium shadow-lg"
+                style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}
+                onClick={() => {
+                  // Simulate scanning a book for demo
+                  const demoISBNs = [
+                    '9780465050659', // The Design of Everyday Things
+                    '9780134685991', // Effective Java
+                    '9781617294945', // Spring in Action
+                    '9780596517748', // JavaScript: The Good Parts
+                    '9780321965515'  // Don't Make Me Think
+                  ];
+                  const randomISBN = demoISBNs[Math.floor(Math.random() * demoISBNs.length)];
+                  handleBarcodeDetected(randomISBN);
+                }}
+                disabled={isLoading}
+                data-testid="demo-scan-button"
+              >
+                {isLoading ? "Scanning..." : "Demo Scan"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">Simulates finding a random programming book</p>
+            <p className="text-xs text-orange-600 font-medium mt-1">
+              ⚠️ Demo mode: Real barcode scanning would read actual ISBN from camera
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center justify-between mb-3">

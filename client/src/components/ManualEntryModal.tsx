@@ -34,19 +34,13 @@ export default function ManualEntryModal({ isOpen, onClose, onLoading }: ManualE
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!isbn.trim()) {
-      toast({
-        title: "ISBN Required",
-        description: "Please enter an ISBN to lookup.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleQuickISBN = async (quickISBN: string) => {
+    setIsbn(quickISBN);
+    handleISBNSubmit(quickISBN);
+  };
 
-    if (!validateISBN(isbn)) {
+  const handleISBNSubmit = async (isbnToSubmit: string) => {
+    if (!validateISBN(isbnToSubmit)) {
       toast({
         title: "Invalid ISBN",
         description: "Please enter a valid 10 or 13 digit ISBN.",
@@ -56,7 +50,7 @@ export default function ManualEntryModal({ isOpen, onClose, onLoading }: ManualE
     }
 
     try {
-      const book = await scanISBN(isbn);
+      const book = await scanISBN(isbnToSubmit);
       if (book) {
         toast({
           title: "Book Added",
@@ -72,6 +66,21 @@ export default function ManualEntryModal({ isOpen, onClose, onLoading }: ManualE
         variant: "destructive"
       });
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isbn.trim()) {
+      toast({
+        title: "ISBN Required",
+        description: "Please enter an ISBN to lookup.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await handleISBNSubmit(isbn);
   };
 
   const handleClose = () => {
@@ -138,6 +147,35 @@ export default function ManualEntryModal({ isOpen, onClose, onLoading }: ManualE
             </Button>
           </div>
         </form>
+
+        {/* Quick ISBN Selection */}
+        <div className="border-t pt-4 mt-4">
+          <div className="text-sm font-medium text-gray-700 mb-3">Quick Add (Demo Books):</div>
+          <div className="space-y-2">
+            {[
+              { isbn: '9780465050659', title: 'The Design of Everyday Things', author: 'Don Norman' },
+              { isbn: '9780134685991', title: 'Effective Java', author: 'Joshua Bloch' },
+              { isbn: '9781617294945', title: 'Spring in Action', author: 'Craig Walls' },
+              { isbn: '9780596517748', title: 'JavaScript: The Good Parts', author: 'Douglas Crockford' },
+              { isbn: '9780321965515', title: "Don't Make Me Think", author: 'Steve Krug' }
+            ].map((book) => (
+              <button
+                key={book.isbn}
+                onClick={() => handleQuickISBN(book.isbn)}
+                disabled={isLoading}
+                className="w-full text-left p-3 text-sm rounded border hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                data-testid={`quick-isbn-${book.isbn}`}
+              >
+                <div className="font-medium text-gray-900">{book.title}</div>
+                <div className="text-gray-600">{book.author}</div>
+                <div className="text-gray-500 text-xs">{book.isbn}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Tap any book above to instantly add it to your library
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
