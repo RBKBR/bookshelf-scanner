@@ -1,0 +1,227 @@
+import { useEffect, useRef, useState } from "react";
+import { useBookScanner } from "@/hooks/useBookScanner";
+import { useToast } from "@/hooks/use-toast";
+
+interface BarcodeScannerProps {
+  onManualEntry: () => void;
+  onLoading: (loading: boolean) => void;
+}
+
+export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScannerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [flashEnabled, setFlashEnabled] = useState(false);
+  const [lastScannedBook, setLastScannedBook] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
+  const { toast } = useToast();
+  const { scanISBN, isLoading } = useBookScanner();
+
+  useEffect(() => {
+    onLoading(isLoading);
+  }, [isLoading, onLoading]);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let scanningInterval: NodeJS.Timeout | null = null;
+
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setIsScanning(true);
+        }
+
+        // Start barcode scanning simulation
+        // In production, this would use QuaggaJS or ZXing
+        scanningInterval = setInterval(() => {
+          // Simulate barcode detection
+          if (Math.random() < 0.1 && !isLoading) { // 10% chance per interval
+            const mockISBN = '9780465050659'; // Mock ISBN for demo
+            handleBarcodeDetected(mockISBN);
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        toast({
+          title: "Camera Error",
+          description: "Unable to access camera. Please check permissions.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (scanningInterval) {
+        clearInterval(scanningInterval);
+      }
+    };
+  }, []);
+
+  const handleBarcodeDetected = async (isbn: string) => {
+    try {
+      const book = await scanISBN(isbn);
+      if (book) {
+        setLastScannedBook(book);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+        
+        toast({
+          title: "Book Added",
+          description: `${book.title} has been added to your library.`
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Scan Failed",
+        description: "Unable to lookup book metadata. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleFlash = () => {
+    setFlashEnabled(!flashEnabled);
+    // In production, this would control camera flash
+  };
+
+  const switchCamera = () => {
+    // In production, this would switch between front and back cameras
+    toast({
+      title: "Camera Switch",
+      description: "Camera switching not implemented in demo."
+    });
+  };
+
+  return (
+    <div className="relative">
+      {/* Camera Preview Container */}
+      <div className="relative h-64 bg-gray-900 overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+          data-testid="camera-preview"
+        />
+        
+        {!isScanning && (
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-800 to-gray-900 flex items-center justify-center">
+            <div className="text-white text-center">
+              <span className="material-icons text-6xl mb-2 opacity-50">videocam</span>
+              <p className="text-sm opacity-75">Starting Camera...</p>
+            </div>
+          </div>
+        )}
+        
+        {/* Scanning overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            <div className="w-64 h-16 border-2 rounded-lg relative bg-opacity-10" style={{ borderColor: 'hsl(14, 77%, 52%)', backgroundColor: 'hsl(14, 77%, 52%)' }}>
+              {/* Corner markers */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white"></div>
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white"></div>
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white"></div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white"></div>
+              
+              {/* Scanning line */}
+              <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                <div className="w-full h-0.5 shadow-lg animate-pulse" style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}></div>
+              </div>
+            </div>
+            
+            <p className="text-white text-center mt-4 text-sm">Position ISBN barcode within frame</p>
+          </div>
+        </div>
+        
+        {/* Success feedback */}
+        <div
+          className={`absolute top-4 left-4 right-4 text-white px-3 py-2 rounded-lg shadow-lg transition-all duration-300 ${
+            showSuccess ? 'transform translate-y-0 opacity-100' : 'transform -translate-y-full opacity-0'
+          }`}
+          style={{ backgroundColor: 'hsl(123, 43%, 46%)' }}
+          data-testid="scan-success-message"
+        >
+          <div className="flex items-center space-x-2">
+            <span className="material-icons text-sm">check_circle</span>
+            <span className="text-sm font-medium">ISBN Scanned Successfully!</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Scanner Controls */}
+      <div className="bg-white p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            className="flex items-center space-x-2 text-gray-500"
+            onClick={toggleFlash}
+            data-testid="flash-toggle"
+          >
+            <span className="material-icons">{flashEnabled ? 'flash_on' : 'flash_off'}</span>
+            <span className="text-sm">Flash</span>
+          </button>
+          <button
+            className="text-white px-4 py-2 rounded-lg font-medium"
+            style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}
+            onClick={onManualEntry}
+            data-testid="manual-entry-button"
+          >
+            Manual Entry
+          </button>
+          <button
+            className="flex items-center space-x-2 text-gray-500"
+            onClick={switchCamera}
+            data-testid="switch-camera"
+          >
+            <span className="material-icons">flip_camera_android</span>
+            <span className="text-sm">Flip</span>
+          </button>
+        </div>
+        
+        {/* Last scanned book preview */}
+        {lastScannedBook && (
+          <div className="bg-gray-50 rounded-lg p-3" data-testid="last-scanned-book">
+            <div className="flex items-center space-x-3">
+              <img
+                src={lastScannedBook.coverURL || "https://via.placeholder.com/48x64?text=Book"}
+                alt="Book cover"
+                className="w-12 h-16 object-cover rounded shadow-sm"
+                data-testid="book-cover-thumbnail"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 truncate" data-testid="book-title">
+                  {lastScannedBook.title}
+                </h3>
+                <p className="text-xs text-gray-500 truncate" data-testid="book-author">
+                  {lastScannedBook.author}
+                </p>
+                <p className="text-xs font-medium" style={{ color: 'hsl(123, 43%, 46%)' }} data-testid="book-genre">
+                  {lastScannedBook.genre || 'Unknown'}
+                </p>
+              </div>
+              <span className="material-icons" style={{ color: 'hsl(123, 43%, 46%)' }}>check_circle</span>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
+}
