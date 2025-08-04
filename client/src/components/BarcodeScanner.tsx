@@ -14,6 +14,7 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [lastScannedBook, setLastScannedBook] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentCamera, setCurrentCamera] = useState<'environment' | 'user'>('environment');
   
   const { toast } = useToast();
   const { scanISBN, isLoading } = useBookScanner();
@@ -28,9 +29,14 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
 
     const startCamera = async () => {
       try {
+        // Stop existing stream if any
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: 'environment',
+            facingMode: currentCamera,
             width: { ideal: 1280 },
             height: { ideal: 720 }
           }
@@ -89,7 +95,7 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
         clearInterval(scanningInterval);
       }
     };
-  }, []);
+  }, [currentCamera]);
 
   const handleBarcodeDetected = async (isbn: string) => {
     try {
@@ -133,12 +139,22 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
     // In production, this would control camera flash
   };
 
-  const switchCamera = () => {
-    // In production, this would switch between front and back cameras
-    toast({
-      title: "Camera Switch",
-      description: "Camera switching not implemented in demo."
-    });
+  const switchCamera = async () => {
+    try {
+      const newCamera = currentCamera === 'environment' ? 'user' : 'environment';
+      setCurrentCamera(newCamera);
+      
+      toast({
+        title: "Camera Switched",
+        description: `Switched to ${newCamera === 'environment' ? 'back' : 'front'} camera`
+      });
+    } catch (error) {
+      toast({
+        title: "Camera Switch Failed",
+        description: "Unable to switch camera. Device may not support multiple cameras.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -183,7 +199,7 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
               {isLoading ? "🔍 Looking up book..." : "📱 Auto-scanning for books..."}
             </p>
             <p className="text-white text-center mt-1 text-xs opacity-75">
-              {isLoading ? "Fetching metadata" : "Or tap Manual Entry below"}
+              {isLoading ? "Fetching metadata" : `Using ${currentCamera === 'environment' ? 'back' : 'front'} camera`}
             </p>
           </div>
         </div>
@@ -233,12 +249,14 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
             Manual Entry
           </button>
           <button
-            className="flex items-center space-x-2 text-gray-500"
+            className="flex items-center space-x-2 text-gray-500 hover:text-gray-700 transition-colors"
             onClick={switchCamera}
             data-testid="switch-camera"
           >
-            <span className="material-icons">flip_camera_android</span>
-            <span className="text-sm">Flip</span>
+            <span className="material-icons">
+              {currentCamera === 'environment' ? 'camera_rear' : 'camera_front'}
+            </span>
+            <span className="text-sm">{currentCamera === 'environment' ? 'Back' : 'Front'}</span>
           </button>
         </div>
         
