@@ -1,0 +1,45 @@
+I’m building a **book catalog app** for scanning ISBN barcodes (around 200 books), looking up genre metadata, and automatically sorting my bookshelves by genre. The requirements:
+
+### 📲 Platform & Scanner
+- Use **React Native (Expo)** for mobile or a **web version with webcam + JS library**. Specify "mobile" or "web".
+- Barcode detector must support **EAN‑13**, **ISBN‑10**, **ISBN‑13**, or camera scanning + manual ISBN fallback.
+- Provide camera preview, live decode, beep/haptic feedback, fast scanning speed (can use `expo-barcode-scanner`, `react-native-camera`).
+
+### 📘 Lookup metadata
+- On first valid ISBN scan, fetch metadata from **Google Books API** (using an API key) via:  
+  > `https://www.googleapis.com/books/v1/volumes?q=isbn:{ISBN}`
+  - From response, take `volumeInfo.categories` (if present)—this is the book’s **category/genre** :contentReference[oaicite:1]{index=1}.
+- If Google Books returns no categories or error, fall back to **Open Library** using the REST API:  
+  > `https://openlibrary.org/isbn/{ISBN}.json?jscmd=data&format=json`  
+  - Look at `subjects[]` or `classifications.dewey_decimal_class` for inferred genre/subject tags :contentReference[oaicite:2]{index=2}.
+
+### 🗂 Data handling & UI
+- Store results locally in **SQLite / AsyncStorage** with fields: `isbn`, `title`, `author`, `publisher`, `coverURL`, `genre`.
+- If API returns multiple categories for one book, assign the first most specific one; provide a "manual edit mode" for user to change genre.
+- UI: a **scrollable shelf by genre**, expanding/collapsing lists. A “Search by genre” filter + “All books” view.
+- Add **batch import mode** for the ~200 books scan session (pause/resume scanning, duplicate detection).
+
+### ⚙️ Performance, error handling & Edge cases
+- Validate ISBN format client-side before calling API.
+- Debounce multiple scans of same ISBN if camera jitters.
+- Provide user‑feedback: “Lookup failed — try again” with optional manual ISBN entry.
+- Respect Google / Open Library rate limits; add retry mechanism and show progress (e.g. “150 of 200 books processed”).
+
+### 🧪 Testing & Maintenance
+- Include an “offline review mode”: show scanned list but greyed out not‑looked‑up books.
+- Export feature: **Export CSV** with columns `ISBN,title,author,genre`.
+- Add automated tests for at least the genre‑mapping logic and SQLite storage.
+
+### 🧩 Modular coding
+- Separate modules/components: `BarcodeScanner`, `BookLookupService`, `GenreMapper`, `StorageLayer`, `GenreShelfView`.
+
+---  
+Write code for me in this order:
+1. Environment setup (dependencies, camera access).
+2. Scanner UI and live decode.
+3. API lookup logic with fallback.
+4. Local data storage.
+5. Front‑end view grouped by genre.
+6. Manual edit mode + export/CSV.
+
+Comment the code, and make it ready for **Cursor AI code continuation** so I can ask: “build the next screen” later.
