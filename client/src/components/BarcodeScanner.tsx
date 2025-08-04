@@ -47,33 +47,9 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
           setIsScanning(true);
         }
 
-        // Start barcode scanning simulation
-        // In production, this would use QuaggaJS or ZXing
-        // For demo purposes, we'll generate random valid ISBNs when scanning
-        scanningInterval = setInterval(() => {
-          // Simulate barcode detection with different ISBNs
-          if (Math.random() < 0.15 && !isLoading) { // 15% chance per interval for more frequent scanning
-            const mockISBNs = [
-              '9780465050659', // The Design of Everyday Things
-              '9780134685991', // Effective Java
-              '9781617294945', // Spring in Action
-              '9780596517748', // JavaScript: The Good Parts
-              '9780321965515', // Don't Make Me Think
-              '9781449344726', // You Don't Know JS
-              '9780735619678', // Code Complete
-              '9780132350884', // Clean Code
-              '9781491904244', // Learning React
-              '9780596805524', // Beautiful Code
-              '9781593275846', // Eloquent JavaScript
-              '9780262033848', // Introduction to Algorithms
-              '9780201616224', // The Pragmatic Programmer
-              '9780596009205', // Head First Design Patterns
-              '9781449367282'  // MongoDB: The Definitive Guide
-            ];
-            const randomISBN = mockISBNs[Math.floor(Math.random() * mockISBNs.length)];
-            handleBarcodeDetected(randomISBN);
-          }
-        }, 1500);
+        // Real barcode scanning would use QuaggaJS or ZXing here
+        // For now, we'll wait for manual input or user interaction
+        // No automatic scanning - only scan when user manually triggers it
 
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -90,9 +66,6 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
-      }
-      if (scanningInterval) {
-        clearInterval(scanningInterval);
       }
     };
   }, [currentCamera]);
@@ -196,10 +169,10 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
             </div>
             
             <p className="text-white text-center mt-4 text-sm font-medium">
-              {isLoading ? "🔍 Looking up book..." : "📱 Auto-scanning for books..."}
+              {isLoading ? "🔍 Looking up book..." : "📱 Point camera at ISBN barcode"}
             </p>
             <p className="text-white text-center mt-1 text-xs opacity-75">
-              {isLoading ? "Fetching metadata" : `Using ${currentCamera === 'environment' ? 'back' : 'front'} camera`}
+              {isLoading ? "Fetching metadata" : `Ready to scan • ${currentCamera === 'environment' ? 'Back' : 'Front'} camera`}
             </p>
           </div>
         </div>
@@ -229,6 +202,30 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
             <div className={`w-2 h-2 rounded-full mr-2 ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
             {isScanning ? 'Scanning Active' : 'Starting Camera...'}
           </div>
+        </div>
+        
+        <div className="text-center mb-3">
+          <button
+            className="text-white px-6 py-3 rounded-lg font-medium text-lg shadow-lg"
+            style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}
+            onClick={() => {
+              // Simulate scanning a book for demo
+              const demoISBNs = [
+                '9780465050659', // The Design of Everyday Things
+                '9780134685991', // Effective Java
+                '9781617294945', // Spring in Action
+                '9780596517748', // JavaScript: The Good Parts
+                '9780321965515'  // Don't Make Me Think
+              ];
+              const randomISBN = demoISBNs[Math.floor(Math.random() * demoISBNs.length)];
+              handleBarcodeDetected(randomISBN);
+            }}
+            disabled={isLoading}
+            data-testid="demo-scan-button"
+          >
+            {isLoading ? "Scanning..." : "Demo Scan"}
+          </button>
+          <p className="text-xs text-gray-500 mt-2">Tap to simulate scanning a book</p>
         </div>
         
         <div className="flex items-center justify-between mb-3">
