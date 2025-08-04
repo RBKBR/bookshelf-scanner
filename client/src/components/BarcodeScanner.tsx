@@ -46,7 +46,7 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
         // For demo purposes, we'll generate random valid ISBNs when scanning
         scanningInterval = setInterval(() => {
           // Simulate barcode detection with different ISBNs
-          if (Math.random() < 0.05 && !isLoading) { // 5% chance per interval
+          if (Math.random() < 0.15 && !isLoading) { // 15% chance per interval for more frequent scanning
             const mockISBNs = [
               '9780465050659', // The Design of Everyday Things
               '9780134685991', // Effective Java
@@ -57,12 +57,17 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
               '9780735619678', // Code Complete
               '9780132350884', // Clean Code
               '9781491904244', // Learning React
-              '9780596805524'  // Beautiful Code
+              '9780596805524', // Beautiful Code
+              '9781593275846', // Eloquent JavaScript
+              '9780262033848', // Introduction to Algorithms
+              '9780201616224', // The Pragmatic Programmer
+              '9780596009205', // Head First Design Patterns
+              '9781449367282'  // MongoDB: The Definitive Guide
             ];
             const randomISBN = mockISBNs[Math.floor(Math.random() * mockISBNs.length)];
             handleBarcodeDetected(randomISBN);
           }
-        }, 2000);
+        }, 1500);
 
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -170,12 +175,15 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
               
               {/* Scanning line */}
               <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
-                <div className="w-full h-0.5 shadow-lg animate-pulse" style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}></div>
+                <div className={`w-full h-0.5 shadow-lg ${isLoading ? 'animate-ping' : 'animate-pulse'}`} style={{ backgroundColor: 'hsl(14, 77%, 52%)' }}></div>
               </div>
             </div>
             
-            <p className="text-white text-center mt-4 text-sm">
-              {isLoading ? "Looking up book..." : "Position ISBN barcode within frame"}
+            <p className="text-white text-center mt-4 text-sm font-medium">
+              {isLoading ? "🔍 Looking up book..." : "📱 Auto-scanning for books..."}
+            </p>
+            <p className="text-white text-center mt-1 text-xs opacity-75">
+              {isLoading ? "Fetching metadata" : "Or tap Manual Entry below"}
             </p>
           </div>
         </div>
@@ -197,6 +205,16 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
       
       {/* Scanner Controls */}
       <div className="bg-white p-4 border-b border-gray-200">
+        <div className="text-center mb-3">
+          <div className="text-sm font-medium text-gray-700 mb-1">Scanner Status</div>
+          <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            isScanning ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+          }`}>
+            <div className={`w-2 h-2 rounded-full mr-2 ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+            {isScanning ? 'Scanning Active' : 'Starting Camera...'}
+          </div>
+        </div>
+        
         <div className="flex items-center justify-between mb-3">
           <button
             className="flex items-center space-x-2 text-gray-500"
