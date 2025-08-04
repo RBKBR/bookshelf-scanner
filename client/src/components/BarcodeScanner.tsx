@@ -43,13 +43,26 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
 
         // Start barcode scanning simulation
         // In production, this would use QuaggaJS or ZXing
+        // For demo purposes, we'll generate random valid ISBNs when scanning
         scanningInterval = setInterval(() => {
-          // Simulate barcode detection
-          if (Math.random() < 0.1 && !isLoading) { // 10% chance per interval
-            const mockISBN = '9780465050659'; // Mock ISBN for demo
-            handleBarcodeDetected(mockISBN);
+          // Simulate barcode detection with different ISBNs
+          if (Math.random() < 0.05 && !isLoading) { // 5% chance per interval
+            const mockISBNs = [
+              '9780465050659', // The Design of Everyday Things
+              '9780134685991', // Effective Java
+              '9781617294945', // Spring in Action
+              '9780596517748', // JavaScript: The Good Parts
+              '9780321965515', // Don't Make Me Think
+              '9781449344726', // You Don't Know JS
+              '9780735619678', // Code Complete
+              '9780132350884', // Clean Code
+              '9781491904244', // Learning React
+              '9780596805524'  // Beautiful Code
+            ];
+            const randomISBN = mockISBNs[Math.floor(Math.random() * mockISBNs.length)];
+            handleBarcodeDetected(randomISBN);
           }
-        }, 1000);
+        }, 2000);
 
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -81,17 +94,32 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
         
+        // Play success sound (if supported)
+        try {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhSuA');
+          audio.volume = 0.3;
+          audio.play().catch(() => {}); // Ignore errors if audio fails
+        } catch (e) {}
+        
         toast({
-          title: "Book Added",
-          description: `${book.title} has been added to your library.`
+          title: "Book Scanned Successfully!",
+          description: book.title ? `Added "${book.title}" to your library` : `Added book with ISBN ${isbn}`
         });
       }
     } catch (error) {
-      toast({
-        title: "Scan Failed",
-        description: "Unable to lookup book metadata. Please try again.",
-        variant: "destructive"
-      });
+      if (error instanceof Error && error.message === "Book already exists in library") {
+        toast({
+          title: "Already in Library",
+          description: "This book is already in your collection.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Scan Failed",
+          description: "Unable to lookup book metadata. Try manual entry or scan again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -146,7 +174,9 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
               </div>
             </div>
             
-            <p className="text-white text-center mt-4 text-sm">Position ISBN barcode within frame</p>
+            <p className="text-white text-center mt-4 text-sm">
+              {isLoading ? "Looking up book..." : "Position ISBN barcode within frame"}
+            </p>
           </div>
         </div>
         
