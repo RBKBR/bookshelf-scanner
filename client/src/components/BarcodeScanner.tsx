@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useBookScanner } from "@/hooks/useBookScanner";
 import { useToast } from "@/hooks/use-toast";
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 interface BarcodeScannerProps {
   onManualEntry: () => void;
@@ -15,9 +16,11 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
   const [lastScannedBook, setLastScannedBook] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [currentCamera, setCurrentCamera] = useState<'environment' | 'user'>('environment');
+  const [isRealScanning, setIsRealScanning] = useState(false);
   
   const { toast } = useToast();
   const { scanISBN, isLoading } = useBookScanner();
+  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
 
   useEffect(() => {
     onLoading(isLoading);
@@ -47,9 +50,38 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
           setIsScanning(true);
         }
 
-        // Real barcode scanning would use QuaggaJS or ZXing here
-        // For now, we'll wait for manual input or user interaction
-        // No automatic scanning - only scan when user manually triggers it
+        // Initialize real barcode scanning with ZXing
+        if (!codeReader.current) {
+          codeReader.current = new BrowserMultiFormatReader();
+        }
+
+        // Start real barcode scanning
+        if (videoRef.current && codeReader.current) {
+          try {
+            await codeReader.current.decodeFromVideoDevice(
+              null, // Use default device or selected camera
+              videoRef.current,
+              (result, error) => {
+                if (result) {
+                  const scannedText = result.getText();
+                  // Check if it looks like an ISBN (10 or 13 digits)
+                  const cleanText = scannedText.replace(/[^0-9X]/gi, '');
+                  if (cleanText.length === 10 || cleanText.length === 13) {
+                    handleBarcodeDetected(cleanText);
+                  }
+                }
+                // Ignore NotFoundException - just keep scanning
+                if (error && !(error instanceof NotFoundException)) {
+                  console.log('Barcode scanning error:', error);
+                }
+              }
+            );
+            setIsRealScanning(true);
+          } catch (error) {
+            console.error('Failed to start real barcode scanning:', error);
+            setIsRealScanning(false);
+          }
+        }
 
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -66,6 +98,9 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
+      }
+      if (codeReader.current) {
+        codeReader.current.reset();
       }
     };
   }, [currentCamera]);
@@ -197,16 +232,23 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
         <div className="text-center mb-3">
           <div className="text-sm font-medium text-gray-700 mb-1">Scanner Status</div>
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-            isScanning ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            isRealScanning ? 'bg-green-100 text-green-800' : 
+            isScanning ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
           }`}>
-            <div className={`w-2 h-2 rounded-full mr-2 ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-            {isScanning ? 'Scanning Active' : 'Starting Camera...'}
+            <div className={`w-2 h-2 rounded-full mr-2 ${
+              isRealScanning ? 'bg-green-500 animate-pulse' : 
+              isScanning ? 'bg-blue-500 animate-pulse' : 'bg-yellow-500'
+            }`}></div>
+            {isRealScanning ? 'Real Barcode Scanning Active' : 
+             isScanning ? 'Camera Ready' : 'Starting Camera...'}
           </div>
         </div>
         
         <div className="text-center mb-3">
           <div className="space-y-2">
-            <p className="text-sm text-gray-600">Real barcode scanning requires additional setup</p>
+            <p className="text-sm text-gray-600">
+              {isRealScanning ? "Real barcode scanning active - point at ISBN" : "Real barcode scanning enabled"}
+            </p>
             <div className="flex space-x-2 justify-center">
               <button
                 className="text-white px-4 py-2 rounded-lg font-medium shadow-lg"
@@ -229,10 +271,14 @@ export default function BarcodeScanner({ onManualEntry, onLoading }: BarcodeScan
                 {isLoading ? "Scanning..." : "Demo Scan"}
               </button>
             </div>
-            <p className="text-xs text-gray-500">Simulates finding a random programming book</p>
-            <p className="text-xs text-orange-600 font-medium mt-1">
-              ⚠️ Demo mode: Real barcode scanning would read actual ISBN from camera
+            <p className="text-xs text-gray-500">
+              {isRealScanning ? "Fallback: Use if real scanning doesn't work" : "Simulates finding a random programming book"}
             </p>
+            {!isRealScanning && (
+              <p className="text-xs text-orange-600 font-medium mt-1">
+                ⚠️ Demo mode: Real barcode scanning failed to start
+              </p>
+            )}
           </div>
         </div>
         
